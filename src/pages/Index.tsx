@@ -14,6 +14,11 @@ const Index = () => {
   const [notificationOpen, setNotificationOpen] = useState(false);
   const [activeApp, setActiveApp] = useState<string | null>(null);
   const [brightness, setBrightness] = useState([70]);
+  const [isLocked, setIsLocked] = useState(true);
+  const [unlockProgress, setUnlockProgress] = useState(0);
+  const [cameraMode, setCameraMode] = useState<'photo' | 'video' | 'portrait'>('photo');
+  const [isRecording, setIsRecording] = useState(false);
+  const [flashMode, setFlashMode] = useState<'off' | 'on' | 'auto'>('off');
   const [quickSettings, setQuickSettings] = useState([
     { id: "wifi", name: "Wi-Fi", icon: "Wifi", active: true },
     { id: "bluetooth", name: "Bluetooth", icon: "Bluetooth", active: false },
@@ -51,6 +56,24 @@ const Index = () => {
   const openApp = (appId: string) => {
     setActiveApp(appId);
     setNotificationOpen(false);
+  };
+
+  const handleUnlockDrag = (e: React.MouseEvent | React.TouchEvent) => {
+    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+    const startY = window.innerHeight * 0.7;
+    const progress = Math.max(0, Math.min(100, ((startY - clientY) / (startY * 0.5)) * 100));
+    setUnlockProgress(progress);
+    
+    if (progress >= 100) {
+      setIsLocked(false);
+      setUnlockProgress(0);
+    }
+  };
+
+  const handleUnlockEnd = () => {
+    if (unlockProgress < 100) {
+      setUnlockProgress(0);
+    }
   };
 
   const closeApp = () => {
@@ -122,6 +145,84 @@ const Index = () => {
             </div>
           </div>
         );
+      case "camera":
+        return (
+          <div className="h-full bg-black flex flex-col">
+            <div className="absolute top-4 left-0 right-0 z-10 flex items-center justify-between px-4 text-white">
+              <button 
+                onClick={() => setFlashMode(flashMode === 'off' ? 'on' : flashMode === 'on' ? 'auto' : 'off')}
+                className="w-10 h-10 rounded-full bg-black/50 flex items-center justify-center"
+              >
+                {flashMode === 'off' && <Icon name="ZapOff" size={20} />}
+                {flashMode === 'on' && <Icon name="Zap" size={20} />}
+                {flashMode === 'auto' && <Icon name="Sparkles" size={20} />}
+              </button>
+              <button className="w-10 h-10 rounded-full bg-black/50 flex items-center justify-center">
+                <Icon name="Settings" size={20} />
+              </button>
+            </div>
+
+            <div className="flex-1 flex items-center justify-center relative">
+              <div className="w-full h-full bg-gradient-to-br from-gray-800 via-gray-700 to-gray-900 flex items-center justify-center">
+                <Icon name="Camera" size={80} className="text-white/30" />
+              </div>
+              
+              {cameraMode === 'portrait' && (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="w-48 h-64 border-2 border-yellow-400 rounded-full opacity-50" />
+                </div>
+              )}
+            </div>
+
+            <div className="absolute bottom-0 left-0 right-0 pb-8 px-6">
+              <div className="flex items-center justify-center gap-6 mb-6 text-white text-sm">
+                <button 
+                  onClick={() => setCameraMode('photo')}
+                  className={`${cameraMode === 'photo' ? 'text-[#FFC700] font-bold' : ''}`}
+                >
+                  ФОТО
+                </button>
+                <button 
+                  onClick={() => setCameraMode('video')}
+                  className={`${cameraMode === 'video' ? 'text-[#FFC700] font-bold' : ''}`}
+                >
+                  ВИДЕО
+                </button>
+                <button 
+                  onClick={() => setCameraMode('portrait')}
+                  className={`${cameraMode === 'portrait' ? 'text-[#FFC700] font-bold' : ''}`}
+                >
+                  ПОРТРЕТ
+                </button>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <button className="w-14 h-14 rounded-xl bg-white/20 flex items-center justify-center text-white">
+                  <Icon name="Image" size={24} />
+                </button>
+
+                <button 
+                  onClick={() => {
+                    if (cameraMode === 'video') {
+                      setIsRecording(!isRecording);
+                    }
+                  }}
+                  className={`w-20 h-20 rounded-full flex items-center justify-center ${
+                    isRecording ? 'bg-red-500' : 'bg-white'
+                  } border-4 border-white/50 transition-all ${isRecording ? 'scale-90' : ''}`}
+                >
+                  {cameraMode === 'video' && isRecording && (
+                    <div className="w-8 h-8 bg-white rounded" />
+                  )}
+                </button>
+
+                <button className="w-14 h-14 rounded-xl bg-white/20 flex items-center justify-center text-white">
+                  <Icon name="RotateCcw" size={24} />
+                </button>
+              </div>
+            </div>
+          </div>
+        );
       case "settings":
         return (
           <div className="h-full bg-gray-50 flex flex-col">
@@ -168,6 +269,43 @@ const Index = () => {
           className="relative h-full w-full bg-cover bg-center"
           style={{ backgroundImage: `url('https://cdn.poehali.dev/projects/f35030ad-0807-47d6-8a5b-e0799f623ac4/files/55039a27-359c-4b04-a634-60f5a6d37dc3.jpg')` }}
         >
+          {isLocked && (
+            <div 
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm z-50 flex flex-col items-center justify-center"
+              onMouseMove={handleUnlockDrag}
+              onMouseUp={handleUnlockEnd}
+              onTouchMove={handleUnlockDrag}
+              onTouchEnd={handleUnlockEnd}
+            >
+              <div className="text-white text-center mb-12">
+                <div className="text-8xl font-light mb-2">{currentTime.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}</div>
+                <div className="text-xl">
+                  {currentTime.toLocaleDateString("ru-RU", { weekday: "long", day: "numeric", month: "long" })}
+                </div>
+              </div>
+
+              <div className="absolute bottom-32 flex flex-col items-center gap-4">
+                <div 
+                  className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center transition-all"
+                  style={{ 
+                    transform: `translateY(-${unlockProgress}px) scale(${1 + unlockProgress / 200})`,
+                    opacity: 1 - unlockProgress / 150
+                  }}
+                >
+                  <Icon name="ChevronUp" size={32} className="text-white" />
+                </div>
+                <div className="text-white text-sm opacity-70">Свайп вверх для разблокировки</div>
+                
+                <div className="w-32 h-1 bg-white/20 rounded-full mt-4 overflow-hidden">
+                  <div 
+                    className="h-full bg-[#FFC700] transition-all"
+                    style={{ width: `${unlockProgress}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="absolute top-0 left-0 right-0 px-6 pt-8 pb-4 flex items-center justify-between text-white z-40">
             <span className="text-sm font-medium">{currentTime.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}</span>
             <div className="flex items-center gap-2">
@@ -177,7 +315,7 @@ const Index = () => {
             </div>
           </div>
 
-          {!activeApp && !notificationOpen && (
+          {!isLocked && !activeApp && !notificationOpen && (
             <>
               <div className="absolute inset-0 flex flex-col items-center justify-between pb-32 pt-24">
                 <div className="text-center text-white">
@@ -218,7 +356,7 @@ const Index = () => {
             </>
           )}
 
-          {activeApp && (
+          {!isLocked && activeApp && (
             <div className="absolute inset-0 bg-white z-50 animate-in slide-in-from-bottom duration-300">
               {getAppContent(activeApp)}
               <button
@@ -228,7 +366,7 @@ const Index = () => {
             </div>
           )}
 
-          {notificationOpen && (
+          {!isLocked && notificationOpen && (
             <div className="absolute top-0 left-0 right-0 notification-blur p-6 pt-12 z-50 animate-in slide-in-from-top duration-300">
               <div className="flex items-center justify-between mb-6 text-white">
                 <span className="text-sm font-medium">{currentTime.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}</span>
@@ -276,6 +414,13 @@ const Index = () => {
                 onClick={() => setNotificationOpen(false)}
               />
             </div>
+          )}
+
+          {!isLocked && !activeApp && !notificationOpen && (
+            <button
+              className="absolute top-20 left-1/2 -translate-x-1/2 w-32 h-1 bg-white/30 rounded-full z-30"
+              onClick={() => setNotificationOpen(true)}
+            />
           )}
         </div>
       </div>
