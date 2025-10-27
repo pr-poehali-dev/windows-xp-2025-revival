@@ -1,363 +1,284 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Icon from "@/components/ui/icon";
-import { Card } from "@/components/ui/card";
+import { Slider } from "@/components/ui/slider";
 
-interface WindowState {
+interface App {
   id: string;
-  title: string;
+  name: string;
   icon: string;
-  component: React.ReactNode;
-  isOpen: boolean;
-  isMinimized: boolean;
-  position: { x: number; y: number };
-  size: { width: number; height: number };
-  zIndex: number;
+  color: string;
 }
 
 const Index = () => {
-  const [startMenuOpen, setStartMenuOpen] = useState(false);
-  const [windows, setWindows] = useState<WindowState[]>([]);
-  const [nextZIndex, setNextZIndex] = useState(10);
-  const [draggedWindow, setDraggedWindow] = useState<string | null>(null);
-  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const [currentTime, setCurrentTime] = useState(new Date());
+  const [notificationOpen, setNotificationOpen] = useState(false);
+  const [activeApp, setActiveApp] = useState<string | null>(null);
+  const [brightness, setBrightness] = useState([70]);
+  const [quickSettings, setQuickSettings] = useState([
+    { id: "wifi", name: "Wi-Fi", icon: "Wifi", active: true },
+    { id: "bluetooth", name: "Bluetooth", icon: "Bluetooth", active: false },
+    { id: "flashlight", name: "Фонарик", icon: "Flashlight", active: false },
+    { id: "airplane", name: "Авиа", icon: "Plane", active: false },
+  ]);
 
-  const desktopIcons = [
-    { id: "my-computer", name: "Мой компьютер", icon: "Monitor" },
-    { id: "recycle-bin", name: "Корзина", icon: "Trash2" },
-    { id: "notepad", name: "Блокнот", icon: "FileText" },
-    { id: "paint", name: "Paint", icon: "Paintbrush" },
-    { id: "ie", name: "Internet Explorer", icon: "Globe" },
-    { id: "media-player", name: "Media Player", icon: "Music" },
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const apps: App[] = [
+    { id: "phone", name: "Телефон", icon: "Phone", color: "bg-green-500" },
+    { id: "messages", name: "Сообщения", icon: "MessageSquare", color: "bg-blue-500" },
+    { id: "camera", name: "Камера", icon: "Camera", color: "bg-gray-700" },
+    { id: "gallery", name: "Галерея", icon: "Image", color: "bg-pink-500" },
+    { id: "chrome", name: "Chrome", icon: "Chrome", color: "bg-red-500" },
+    { id: "youtube", name: "YouTube", icon: "Youtube", color: "bg-red-600" },
+    { id: "settings", name: "Настройки", icon: "Settings", color: "bg-gray-600" },
+    { id: "calendar", name: "Календарь", icon: "Calendar", color: "bg-blue-600" },
+    { id: "clock", name: "Часы", icon: "Clock", color: "bg-indigo-500" },
+    { id: "files", name: "Файлы", icon: "FolderOpen", color: "bg-yellow-500" },
+    { id: "music", name: "Музыка", icon: "Music", color: "bg-purple-500" },
+    { id: "maps", name: "Карты", icon: "Map", color: "bg-green-600" },
   ];
 
-  const startMenuItems = [
-    { id: "ie", name: "Internet Explorer", icon: "Globe" },
-    { id: "notepad", name: "Блокнот", icon: "FileText" },
-    { id: "paint", name: "Paint", icon: "Paintbrush" },
-    { id: "media-player", name: "Windows Media Player", icon: "Music" },
-    { id: "minesweeper", name: "Сапёр", icon: "Bomb" },
-    { id: "explorer", name: "Проводник", icon: "FolderOpen" },
-  ];
+  const dockApps = apps.slice(0, 4);
+  const homeApps = apps.slice(4);
 
-  const openWindow = (id: string, title: string, icon: string) => {
-    const existingWindow = windows.find((w) => w.id === id);
-    if (existingWindow) {
-      if (existingWindow.isMinimized) {
-        setWindows(
-          windows.map((w) =>
-            w.id === id ? { ...w, isMinimized: false, zIndex: nextZIndex } : w
-          )
-        );
-        setNextZIndex(nextZIndex + 1);
-      } else {
-        bringToFront(id);
-      }
-      return;
-    }
-
-    const newWindow: WindowState = {
-      id,
-      title,
-      icon,
-      component: getWindowContent(id),
-      isOpen: true,
-      isMinimized: false,
-      position: { x: 50 + windows.length * 30, y: 50 + windows.length * 30 },
-      size: { width: 600, height: 400 },
-      zIndex: nextZIndex,
-    };
-
-    setWindows([...windows, newWindow]);
-    setNextZIndex(nextZIndex + 1);
-    setStartMenuOpen(false);
+  const toggleQuickSetting = (id: string) => {
+    setQuickSettings(quickSettings.map(s => s.id === id ? { ...s, active: !s.active } : s));
   };
 
-  const closeWindow = (id: string) => {
-    setWindows(windows.filter((w) => w.id !== id));
+  const openApp = (appId: string) => {
+    setActiveApp(appId);
+    setNotificationOpen(false);
   };
 
-  const minimizeWindow = (id: string) => {
-    setWindows(windows.map((w) => (w.id === id ? { ...w, isMinimized: true } : w)));
+  const closeApp = () => {
+    setActiveApp(null);
   };
 
-  const bringToFront = (id: string) => {
-    setWindows(
-      windows.map((w) => (w.id === id ? { ...w, zIndex: nextZIndex } : w))
-    );
-    setNextZIndex(nextZIndex + 1);
-  };
-
-  const startDrag = (id: string, e: React.MouseEvent) => {
-    const window = windows.find((w) => w.id === id);
-    if (!window) return;
-
-    setDraggedWindow(id);
-    setDragOffset({
-      x: e.clientX - window.position.x,
-      y: e.clientY - window.position.y,
-    });
-    bringToFront(id);
-  };
-
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (!draggedWindow) return;
-
-    const newX = e.clientX - dragOffset.x;
-    const newY = e.clientY - dragOffset.y;
-
-    setWindows(
-      windows.map((w) =>
-        w.id === draggedWindow
-          ? { ...w, position: { x: Math.max(0, newX), y: Math.max(0, newY) } }
-          : w
-      )
-    );
-  };
-
-  const handleMouseUp = () => {
-    setDraggedWindow(null);
-  };
-
-  const getWindowContent = (id: string) => {
-    switch (id) {
-      case "ie":
-        return (
-          <div className="h-full flex flex-col bg-white">
-            <div className="bg-[#ECE9D8] border-b border-gray-300 px-3 py-1 flex items-center gap-2">
-              <input
-                type="text"
-                defaultValue="https://www.poehali.dev"
-                className="flex-1 px-2 py-1 border border-gray-400 rounded-sm"
-              />
-              <button className="px-3 py-1 bg-[#ECE9D8] border border-gray-400 rounded-sm hover:bg-gray-200">
-                Переход
-              </button>
-            </div>
-            <div className="flex-1 flex items-center justify-center text-gray-600 flex-col gap-4">
-              <Icon name="Globe" size={64} className="text-blue-500" />
-              <p className="text-xl">Internet Explorer 2025</p>
-              <p className="text-sm text-gray-500">Введите адрес в строке выше</p>
-            </div>
-          </div>
-        );
-      case "notepad":
-        return (
-          <div className="h-full bg-white">
-            <textarea
-              className="w-full h-full p-3 resize-none border-none outline-none font-mono"
-              placeholder="Начните вводить текст..."
-            />
-          </div>
-        );
-      case "paint":
+  const getAppContent = (appId: string) => {
+    const app = apps.find(a => a.id === appId);
+    
+    switch (appId) {
+      case "phone":
         return (
           <div className="h-full bg-white flex flex-col">
-            <div className="bg-[#ECE9D8] border-b border-gray-300 px-3 py-2 flex gap-2">
-              <div className="w-8 h-8 bg-black border border-gray-400" />
-              <div className="w-8 h-8 bg-red-500 border border-gray-400" />
-              <div className="w-8 h-8 bg-blue-500 border border-gray-400" />
-              <div className="w-8 h-8 bg-yellow-400 border border-gray-400" />
-              <div className="w-8 h-8 bg-green-500 border border-gray-400" />
+            <div className="bg-[#FFC700] p-4 text-center">
+              <h2 className="text-xl font-bold text-black">Телефон</h2>
             </div>
-            <div className="flex-1 bg-white flex items-center justify-center text-gray-400">
-              <Icon name="Paintbrush" size={64} />
-            </div>
-          </div>
-        );
-      case "minesweeper":
-        return (
-          <div className="h-full bg-[#ECE9D8] flex items-center justify-center flex-col gap-4">
-            <div className="text-4xl">💣</div>
-            <p className="text-lg font-bold">Сапёр</p>
-            <button className="px-4 py-2 bg-[#ECE9D8] border-2 border-t-white border-l-white border-r-gray-600 border-b-gray-600 hover:bg-gray-200">
-              Новая игра
-            </button>
-          </div>
-        );
-      case "media-player":
-        return (
-          <div className="h-full bg-gradient-to-b from-blue-900 to-black flex items-center justify-center flex-col gap-4 text-white">
-            <Icon name="Music" size={64} />
-            <p className="text-xl">Windows Media Player</p>
-            <div className="flex gap-2 mt-4">
-              <button className="w-10 h-10 rounded-full bg-blue-600 hover:bg-blue-700 flex items-center justify-center">
-                <Icon name="Play" size={20} />
-              </button>
-              <button className="w-10 h-10 rounded-full bg-blue-600 hover:bg-blue-700 flex items-center justify-center">
-                <Icon name="Pause" size={20} />
-              </button>
-              <button className="w-10 h-10 rounded-full bg-blue-600 hover:bg-blue-700 flex items-center justify-center">
-                <Icon name="Square" size={20} />
-              </button>
-            </div>
-          </div>
-        );
-      case "explorer":
-        return (
-          <div className="h-full flex flex-col bg-white">
-            <div className="bg-[#ECE9D8] border-b border-gray-300 px-3 py-2">
-              <div className="flex items-center gap-2">
-                <Icon name="Folder" size={16} />
-                <span className="text-sm">C:\Документы</span>
-              </div>
-            </div>
-            <div className="flex-1 p-4">
-              <div className="grid grid-cols-4 gap-4">
-                {["Мои документы", "Мои рисунки", "Моя музыка", "Видео"].map((folder) => (
-                  <div key={folder} className="flex flex-col items-center gap-2 p-2 hover:bg-blue-100 rounded cursor-pointer">
-                    <Icon name="Folder" size={48} className="text-yellow-500" />
-                    <span className="text-xs text-center">{folder}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        );
-      default:
-        return <div className="h-full bg-white flex items-center justify-center">Содержимое окна</div>;
-    }
-  };
-
-  return (
-    <div
-      className="h-screen w-screen overflow-hidden bg-cover bg-center relative select-none"
-      style={{ backgroundImage: "url('https://cdn.poehali.dev/projects/f35030ad-0807-47d6-8a5b-e0799f623ac4/files/56f3da77-1110-444d-b44a-0604f21cc6c5.jpg')" }}
-      onMouseMove={handleMouseMove}
-      onMouseUp={handleMouseUp}
-    >
-      <div className="grid grid-cols-1 gap-4 p-4 w-32">
-        {desktopIcons.map((icon) => (
-          <button
-            key={icon.id}
-            className="flex flex-col items-center gap-1 p-2 hover:bg-blue-400/30 rounded transition-colors group"
-            onDoubleClick={() => openWindow(icon.id, icon.name, icon.icon)}
-          >
-            <div className="w-12 h-12 bg-white/80 rounded flex items-center justify-center shadow-sm group-hover:shadow-md transition-shadow">
-              <Icon name={icon.icon as any} size={28} className="text-blue-600" />
-            </div>
-            <span className="text-xs text-white font-bold drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] text-center">
-              {icon.name}
-            </span>
-          </button>
-        ))}
-      </div>
-
-      {windows.map((window) => (
-        <Card
-          key={window.id}
-          className={`absolute window-shadow transition-opacity ${
-            window.isMinimized ? "hidden" : "block"
-          }`}
-          style={{
-            left: window.position.x,
-            top: window.position.y,
-            width: window.size.width,
-            height: window.size.height,
-            zIndex: window.zIndex,
-          }}
-          onMouseDown={() => bringToFront(window.id)}
-        >
-          <div
-            className="window-titlebar h-8 flex items-center justify-between px-2 cursor-move"
-            onMouseDown={(e) => startDrag(window.id, e)}
-          >
-            <div className="flex items-center gap-2">
-              <Icon name={window.icon as any} size={16} className="text-white" />
-              <span className="text-white text-sm font-bold">{window.title}</span>
-            </div>
-            <div className="flex gap-1">
-              <button
-                className="w-5 h-5 bg-[#0053ee] hover:bg-[#0063ff] flex items-center justify-center text-white text-xs font-bold border border-[#003c74]"
-                onClick={() => minimizeWindow(window.id)}
-              >
-                _
-              </button>
-              <button
-                className="w-5 h-5 bg-[#0053ee] hover:bg-[#ff0000] flex items-center justify-center text-white text-xs font-bold border border-[#003c74]"
-                onClick={() => closeWindow(window.id)}
-              >
-                ×
-              </button>
-            </div>
-          </div>
-          <div className="bg-[#ECE9D8] border-t border-gray-300" style={{ height: "calc(100% - 32px)" }}>
-            {window.component}
-          </div>
-        </Card>
-      ))}
-
-      <div className="absolute bottom-0 left-0 right-0 h-10 bg-gradient-to-b from-[#0997ff] to-[#0053ee] border-t-2 border-[#1aa7ff] shadow-[0_-2px_8px_rgba(0,0,0,0.3)] flex items-center px-1 gap-1">
-        <button
-          className="start-button h-8 px-3 text-white text-sm font-bold flex items-center gap-2 rounded-sm transition-all active:shadow-inner"
-          onClick={() => setStartMenuOpen(!startMenuOpen)}
-        >
-          <div className="w-5 h-5 bg-white rounded-sm flex items-center justify-center">
-            <Icon name="Grip" size={14} className="text-green-600" />
-          </div>
-          Пуск
-        </button>
-
-        <div className="flex-1 flex gap-1">
-          {windows
-            .filter((w) => !w.isMinimized)
-            .map((window) => (
-              <button
-                key={window.id}
-                className="h-8 px-3 bg-[#0053ee]/80 hover:bg-[#0063ff] text-white text-xs flex items-center gap-2 rounded-sm border border-[#003c74] shadow-sm"
-                onClick={() => bringToFront(window.id)}
-              >
-                <Icon name={window.icon as any} size={14} />
-                <span className="max-w-[150px] truncate">{window.title}</span>
-              </button>
-            ))}
-        </div>
-
-        <div className="h-8 px-3 bg-[#12c8ff] rounded-sm flex items-center gap-2 text-white text-xs font-bold border border-[#00aaff]">
-          <Icon name="Volume2" size={14} />
-          <Icon name="Wifi" size={14} />
-          <span>{new Date().toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}</span>
-        </div>
-      </div>
-
-      {startMenuOpen && (
-        <div className="absolute bottom-10 left-0 w-96 bg-gradient-to-r from-[#0053ee] via-[#0053ee] to-[#1aa7ff] rounded-tr-lg shadow-2xl overflow-hidden">
-          <div className="flex">
-            <div className="w-12 bg-[#0053ee] flex flex-col items-center py-4">
-              <div className="text-white text-xs font-bold rotate-[-90deg] origin-center whitespace-nowrap mt-20">
-                Windows XP 2025
-              </div>
-            </div>
-            <div className="flex-1 bg-white">
-              <div className="p-3">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center text-white text-xl font-bold">
-                    Ю
-                  </div>
-                  <span className="font-bold text-lg">Пользователь</span>
+            <div className="flex-1 flex flex-col items-center justify-center gap-4 p-6">
+              <div className="w-full max-w-xs">
+                <div className="text-4xl text-center mb-8 text-gray-800 font-light tracking-widest">
+                  +7 999 123 4567
                 </div>
-                <div className="border-t border-gray-300 pt-2">
-                  {startMenuItems.map((item) => (
+                <div className="grid grid-cols-3 gap-4">
+                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, "*", 0, "#"].map((num) => (
                     <button
-                      key={item.id}
-                      className="w-full flex items-center gap-3 px-3 py-2 hover:bg-blue-500 hover:text-white rounded transition-colors"
-                      onClick={() => openWindow(item.id, item.name, item.icon)}
+                      key={num}
+                      className="aspect-square rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-2xl font-light text-gray-800 transition-colors"
                     >
-                      <Icon name={item.icon as any} size={24} />
-                      <span className="text-sm">{item.name}</span>
+                      {num}
                     </button>
                   ))}
                 </div>
-              </div>
-              <div className="bg-[#0053ee] p-3 flex justify-between">
-                <button className="flex items-center gap-2 px-3 py-1 bg-[#1aa7ff] hover:bg-[#2ab7ff] text-white rounded text-xs">
-                  <Icon name="Power" size={14} />
-                  Выключение
+                <button className="w-full mt-6 py-4 rounded-full bg-green-500 hover:bg-green-600 text-white flex items-center justify-center gap-2 transition-colors">
+                  <Icon name="Phone" size={24} />
+                  <span className="text-lg font-medium">Позвонить</span>
                 </button>
               </div>
             </div>
           </div>
+        );
+      case "messages":
+        return (
+          <div className="h-full bg-white flex flex-col">
+            <div className="bg-[#00D9FF] p-4 text-center">
+              <h2 className="text-xl font-bold text-white">Сообщения</h2>
+            </div>
+            <div className="flex-1 overflow-auto">
+              {["Мама", "Работа", "Андрей", "Доставка"].map((contact, i) => (
+                <div key={i} className="border-b border-gray-200 p-4 flex items-center gap-3 hover:bg-gray-50">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white font-bold">
+                    {contact[0]}
+                  </div>
+                  <div className="flex-1">
+                    <div className="font-medium text-gray-800">{contact}</div>
+                    <div className="text-sm text-gray-500">Привет! Как дела?</div>
+                  </div>
+                  <div className="text-xs text-gray-400">14:30</div>
+                </div>
+              ))}
+            </div>
+            <div className="border-t border-gray-200 p-3 flex items-center gap-2">
+              <input
+                type="text"
+                placeholder="Написать сообщение..."
+                className="flex-1 px-4 py-2 rounded-full bg-gray-100 outline-none"
+              />
+              <button className="w-10 h-10 rounded-full bg-[#00D9FF] flex items-center justify-center text-white">
+                <Icon name="Send" size={20} />
+              </button>
+            </div>
+          </div>
+        );
+      case "settings":
+        return (
+          <div className="h-full bg-gray-50 flex flex-col">
+            <div className="bg-[#FFC700] p-4 text-center">
+              <h2 className="text-xl font-bold text-black">Настройки</h2>
+            </div>
+            <div className="flex-1 overflow-auto">
+              {[
+                { icon: "Wifi", name: "Wi-Fi", desc: "Подключено" },
+                { icon: "Bluetooth", name: "Bluetooth", desc: "Выключено" },
+                { icon: "Bell", name: "Уведомления", desc: "Все включены" },
+                { icon: "Volume2", name: "Звук", desc: "Звук и вибрация" },
+                { icon: "Monitor", name: "Экран", desc: "Яркость, тайм-аут" },
+                { icon: "Battery", name: "Батарея", desc: "85%" },
+              ].map((setting, i) => (
+                <div key={i} className="bg-white border-b border-gray-200 p-4 flex items-center gap-3">
+                  <Icon name={setting.icon as any} size={24} className="text-gray-600" />
+                  <div className="flex-1">
+                    <div className="font-medium text-gray-800">{setting.name}</div>
+                    <div className="text-sm text-gray-500">{setting.desc}</div>
+                  </div>
+                  <Icon name="ChevronRight" size={20} className="text-gray-400" />
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      default:
+        return (
+          <div className="h-full bg-white flex flex-col items-center justify-center">
+            <Icon name={app?.icon as any} size={80} className="text-gray-400 mb-4" />
+            <p className="text-xl text-gray-800">{app?.name}</p>
+          </div>
+        );
+    }
+  };
+
+  return (
+    <div className="h-screen w-screen bg-gray-900 flex items-center justify-center p-8">
+      <div className="relative w-full max-w-[400px] aspect-[9/19.5] phone-shadow rounded-[3rem] overflow-hidden bg-black">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-1/3 h-7 bg-black rounded-b-3xl z-50" />
+
+        <div
+          className="relative h-full w-full bg-cover bg-center"
+          style={{ backgroundImage: `url('https://cdn.poehali.dev/projects/f35030ad-0807-47d6-8a5b-e0799f623ac4/files/55039a27-359c-4b04-a634-60f5a6d37dc3.jpg')` }}
+        >
+          <div className="absolute top-0 left-0 right-0 px-6 pt-8 pb-4 flex items-center justify-between text-white z-40">
+            <span className="text-sm font-medium">{currentTime.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}</span>
+            <div className="flex items-center gap-2">
+              <Icon name="Signal" size={16} />
+              <Icon name="Wifi" size={16} />
+              <Icon name="Battery" size={16} />
+            </div>
+          </div>
+
+          {!activeApp && !notificationOpen && (
+            <>
+              <div className="absolute inset-0 flex flex-col items-center justify-between pb-32 pt-24">
+                <div className="text-center text-white">
+                  <div className="text-7xl font-light mb-2">{currentTime.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}</div>
+                  <div className="text-lg">
+                    {currentTime.toLocaleDateString("ru-RU", { weekday: "long", day: "numeric", month: "long" })}
+                  </div>
+                </div>
+
+                <div className="w-full px-8 grid grid-cols-4 gap-6">
+                  {homeApps.map((app) => (
+                    <button key={app.id} className="flex flex-col items-center gap-2 group" onClick={() => openApp(app.id)}>
+                      <div className={`w-14 h-14 rounded-2xl ${app.color} app-icon-shadow flex items-center justify-center transition-transform group-active:scale-95`}>
+                        <Icon name={app.icon as any} size={28} className="text-white" />
+                      </div>
+                      <span className="text-xs text-white text-center drop-shadow-lg">{app.name}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="absolute bottom-0 left-0 right-0 px-6 pb-8">
+                <div className="notification-blur rounded-3xl p-4 flex items-center justify-around">
+                  {dockApps.map((app) => (
+                    <button key={app.id} className="group" onClick={() => openApp(app.id)}>
+                      <div className={`w-14 h-14 rounded-2xl ${app.color} app-icon-shadow flex items-center justify-center transition-transform group-active:scale-95`}>
+                        <Icon name={app.icon as any} size={28} className="text-white" />
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <button
+                className="absolute top-20 left-1/2 -translate-x-1/2 w-32 h-1 bg-white/30 rounded-full z-30"
+                onClick={() => setNotificationOpen(true)}
+              />
+            </>
+          )}
+
+          {activeApp && (
+            <div className="absolute inset-0 bg-white z-50 animate-in slide-in-from-bottom duration-300">
+              {getAppContent(activeApp)}
+              <button
+                className="absolute top-2 left-1/2 -translate-x-1/2 w-24 h-1 bg-gray-300 rounded-full"
+                onClick={closeApp}
+              />
+            </div>
+          )}
+
+          {notificationOpen && (
+            <div className="absolute top-0 left-0 right-0 notification-blur p-6 pt-12 z-50 animate-in slide-in-from-top duration-300">
+              <div className="flex items-center justify-between mb-6 text-white">
+                <span className="text-sm font-medium">{currentTime.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}</span>
+                <div className="flex items-center gap-2">
+                  <Icon name="Signal" size={16} />
+                  <Icon name="Wifi" size={16} />
+                  <Icon name="Battery" size={16} />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-4 gap-4 mb-6">
+                {quickSettings.map((setting) => (
+                  <button
+                    key={setting.id}
+                    onClick={() => toggleQuickSetting(setting.id)}
+                    className={`aspect-square rounded-2xl flex flex-col items-center justify-center gap-1 transition-colors ${
+                      setting.active ? "bg-[#00D9FF] text-white" : "bg-white/20 text-white"
+                    }`}
+                  >
+                    <Icon name={setting.icon as any} size={24} />
+                    <span className="text-xs">{setting.name}</span>
+                  </button>
+                ))}
+              </div>
+
+              <div className="bg-white/20 rounded-2xl p-4 mb-4">
+                <div className="flex items-center justify-between mb-2 text-white">
+                  <span className="text-sm">Яркость</span>
+                  <span className="text-sm">{brightness[0]}%</span>
+                </div>
+                <Slider value={brightness} onValueChange={setBrightness} max={100} step={1} />
+              </div>
+
+              <div className="space-y-3">
+                {["Новое сообщение", "Обновление системы"].map((notif, i) => (
+                  <div key={i} className="bg-white/20 rounded-2xl p-4 text-white">
+                    <div className="font-medium mb-1">{notif}</div>
+                    <div className="text-sm text-white/70">Нажмите для просмотра</div>
+                  </div>
+                ))}
+              </div>
+
+              <button
+                className="absolute bottom-4 left-1/2 -translate-x-1/2 w-24 h-1 bg-white/50 rounded-full"
+                onClick={() => setNotificationOpen(false)}
+              />
+            </div>
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
 };
