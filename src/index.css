@@ -1,3 +1,5 @@
+@import url("https://fonts.googleapis.com/css2?family=Tahoma:wght@400;700&display=swap");
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -13,16 +15,16 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    --primary: 217 91% 45%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 120 43% 43%;
+    --secondary-foreground: 0 0% 100%;
 
     --muted: 210 40% 96.1%;
     --muted-foreground: 215.4 16.3% 46.9%;
 
-    --accent: 210 40% 96.1%;
+    --accent: 46 97% 91%;
     --accent-foreground: 222.2 47.4% 11.2%;
 
     --destructive: 0 84.2% 60.2%;
@@ -32,22 +34,21 @@
     --input: 214.3 31.8% 91.4%;
     --ring: 222.2 84% 4.9%;
 
-    --radius: 0.5rem;
+    --radius: 0rem;
+
+    --xp-blue: 217 91% 45%;
+    --xp-green: 120 43% 43%;
+    --xp-taskbar: 217 91% 45%;
+    --xp-window: 46 97% 91%;
+    --xp-titlebar: 217 70% 60%;
 
     --sidebar-background: 0 0% 98%;
-
     --sidebar-foreground: 240 5.3% 26.1%;
-
     --sidebar-primary: 240 5.9% 10%;
-
     --sidebar-primary-foreground: 0 0% 98%;
-
     --sidebar-accent: 240 4.8% 95.9%;
-
     --sidebar-accent-foreground: 240 5.9% 10%;
-
     --sidebar-border: 220 13% 91%;
-
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
 
@@ -97,5 +98,38 @@
 
   body {
     @apply bg-background text-foreground;
+    font-family: "Tahoma", "Segoe UI", sans-serif;
+  }
+}
+
+@layer utilities {
+  .window-shadow {
+    box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.3);
+  }
+
+  .window-titlebar {
+    background: linear-gradient(to bottom, #0997ff 0%, #0053ee 100%);
+  }
+
+  .xp-button {
+    border: 1px solid #003c74;
+    background: linear-gradient(to bottom, #0997ff 0%, #0053ee 100%);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  }
+
+  .xp-button:hover {
+    background: linear-gradient(to bottom, #1aa7ff 0%, #0063ff 100%);
+  }
+
+  .start-button {
+    background: linear-gradient(to bottom, #3ecc42 0%, #2ca82f 100%);
+    border: 1px solid #2a8c2d;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.3),
+      2px 2px 3px rgba(0, 0, 0, 0.3);
+  }
+
+  .start-button:hover {
+    background: linear-gradient(to bottom, #4edc52 0%, #3cb83f 100%);
   }
 }
